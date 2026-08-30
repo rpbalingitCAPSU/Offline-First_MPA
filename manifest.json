@@ -1,0 +1,44 @@
+{
+  "name": "MPA Monitor",
+  "short_name": "MPA Monitor",
+  "description": "Offline-first marine protected area monitoring — fish biomass, coral cover, and carbon sequestration tracking for rangers and scientists.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "theme_color": "#00b4d8",
+  "background_color": "#0a1628",
+  "lang": "en",
+  "categories": ["science", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "New Survey",
+      "short_name": "Survey",
+      "description": "Start a new MPA survey",
+      "url": "/survey.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View monitoring dashboard",
+      "url": "/dashboard.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

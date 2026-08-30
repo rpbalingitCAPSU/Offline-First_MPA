@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — MPA Monitor</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body class="page-login">
+
+  <main class="login-container">
+    <div class="login-card card">
+      <div class="login-header">
+        <div class="app-logo" aria-hidden="true">🌊</div>
+        <h1 class="app-title">MPA Monitor</h1>
+        <p class="text-muted">Marine Protected Area Monitoring System</p>
+      </div>
+
+      <form id="loginForm" class="form" novalidate>
+        <div class="form-group">
+          <label for="username" class="form-label">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            class="form-input"
+            autocomplete="username"
+            placeholder="Enter your username"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            required
+          />
+        </div>
+
+        <div id="loginError" class="alert alert-danger hidden" role="alert"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+          Sign In
+        </button>
+      </form>
+
+      <p class="login-footer text-muted">
+        Offline-capable · Data stays on device until sync
+      </p>
+      <p style="text-align:center;margin-top:1rem;font-size:0.85rem">
+        New to MPA-FishMApp?
+        <a href="signup.html" style="color:var(--color-accent);font-weight:600">Create an account →</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(r => console.log('[SW] Ready', r.scope))
+        .catch(e => console.error('[SW] Error', e));
+    }
+  </script>
+
+  <!-- sql.js WASM loader — must be a classic script so initSqlJs is global -->
+  <script src="vendor/sqljs/sql-wasm.js"></script>
+  <script type="module">
+    import { login, currentUser } from './js/auth.js';
+
+    // Already logged in? Skip to dashboard
+    if (currentUser()) {
+      window.location.replace('dashboard.html');
+    }
+
+    const form     = document.getElementById('loginForm');
+    const errorEl  = document.getElementById('loginError');
+    const loginBtn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.add('hidden');
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in…';
+
+      const username = form.username.value.trim();
+      const password = form.password.value;
+
+      if (!username || !password) {
+        errorEl.textContent = 'Please enter both username and password.';
+        errorEl.classList.remove('hidden');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+        return;
+      }
+
+      try {
+        await login(username, password);
+        window.location.replace('dashboard.html');
+      } catch (err) {
+        errorEl.textContent = err.message || 'Invalid username or password.';
+        errorEl.classList.remove('hidden');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports — MPA Monitor</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body class="page-reports">
+
+  <!-- ===== Navigation ===== -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="navbar-brand">
+      <span class="app-logo" aria-hidden="true">🌊</span>
+      <span class="app-name">MPA Monitor</span>
+    </div>
+    <ul class="navbar-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="survey.html"    class="nav-link">New Survey</a></li>
+      <li><a href="map.html"       class="nav-link">Map</a></li>
+      <li><a href="alerts.html"    class="nav-link">
+        Alerts <span id="alertBadge" class="badge badge-danger hidden">0</span>
+      </a></li>
+      <li><a href="reports.html"   class="nav-link active" aria-current="page">Reports</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="navUsername" class="text-muted nav-username"></span>
+      <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
+    </div>
+  </nav>
+
+  <!-- ===== Page Content ===== -->
+  <main class="main-content">
+    <header class="page-header">
+      <h2 class="page-title">Reports &amp; Export</h2>
+    </header>
+
+    <!-- Filter Panel -->
+    <section class="card form-card">
+      <h3 class="card-title">Export Filters</h3>
+      <form id="reportFilterForm" class="form" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reportSite" class="form-label">MPA Site</label>
+            <select id="reportSite" name="reportSite" class="form-select">
+              <option value="">All sites</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="reportDateFrom" class="form-label">Date From</label>
+            <input type="date" id="reportDateFrom" name="reportDateFrom" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="reportDateTo" class="form-label">Date To</label>
+            <input type="date" id="reportDateTo" name="reportDateTo" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="reportMetric" class="form-label">Metric</label>
+            <select id="reportMetric" name="reportMetric" class="form-select">
+              <option value="all">All metrics</option>
+              <option value="biomass">Fish Biomass</option>
+              <option value="coral">Coral Cover</option>
+              <option value="carbon">Carbon Sequestration</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="exportCsvBtn" class="btn btn-secondary">⬇ Export CSV</button>
+          <button type="button" id="exportPdfBtn" class="btn btn-primary">⬇ Export PDF</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Preview Table -->
+    <section class="card table-card">
+      <h3 class="card-title">Data Preview</h3>
+      <div class="table-responsive">
+        <table class="table" id="reportPreviewTable">
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Date</th>
+              <th>Surveyor</th>
+              <th>Method</th>
+              <th>Biomass (kg)</th>
+              <th>Coral Cover (%)</th>
+              <th>Carbon (t/yr)</th>
+              <th>Sync</th>
+            </tr>
+          </thead>
+          <tbody id="reportPreviewBody">
+            <tr><td colspan="8" class="text-muted text-center">Apply filters and export, or view data below.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(r => console.log('[SW] Ready', r.scope))
+        .catch(e => console.error('[SW] Error', e));
+    }
+  </script>
+
+  <script src="vendor/jspdf/jspdf.umd.min.js"></script>
+  <!-- sql.js WASM loader — must be a classic script so initSqlJs is global -->
+  <script src="vendor/sqljs/sql-wasm.js"></script>
+  <script type="module">
+    import { requireAuth, currentUser, logout } from './js/auth.js';
+    import { initDB } from './js/db.js';
+    import { exportCSV, exportPDF,
+             populateSiteDropdown, populatePreviewTable } from './js/reports.js';
+    import { initSync } from './js/sync.js';
+    import { updateAlertBadge } from './js/alerts.js';
+    import { initWatsonxChat } from './js/watsonx.js';
+
+    requireAuth();
+
+    const user = currentUser();
+    if (user) document.getElementById('navUsername').textContent = user.username;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => logout());
+
+    function getFilters() {
+      return {
+        siteId:   document.getElementById('reportSite').value    || null,
+        dateFrom: document.getElementById('reportDateFrom').value || null,
+        dateTo:   document.getElementById('reportDateTo').value   || null,
+        metric:   document.getElementById('reportMetric').value   || 'all',
+      };
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initDB();
+      initSync();
+      initWatsonxChat({ currentUser });
+      populateSiteDropdown('reportSite');
+      populatePreviewTable('reportPreviewBody', getFilters());
+      updateAlertBadge();
+    });
+
+    // Re-populate preview when filters change
+    ['reportSite', 'reportDateFrom', 'reportDateTo', 'reportMetric'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        populatePreviewTable('reportPreviewBody', getFilters());
+      });
+    });
+
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      exportCSV(getFilters());
+    });
+
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+      exportPDF(getFilters());
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — MPA-FishMApp</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <style>
+    /* ── Signup page layout ───────────────────────────── */
+    .signup-wrapper {
+      min-height: 100vh;
+      background: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .signup-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .signup-header .app-logo { font-size: 2.8rem; }
+    .signup-header h1 { font-size: 1.7rem; margin: 0.3rem 0 0.2rem; color: var(--color-accent); }
+    .signup-header p  { color: var(--color-text-muted); font-size: 0.9rem; }
+
+    .signup-form-card {
+      width: 100%;
+      max-width: 860px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    /* ── Progress stepper ─────────────────────────────── */
+    .stepper {
+      display: flex;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
+      overflow-x: auto;
+    }
+    .step-item {
+      flex: 1;
+      min-width: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.85rem 0.5rem;
+      font-size: 0.72rem;
+      color: var(--color-text-muted);
+      border-right: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+      gap: 0.35rem;
+    }
+    .step-item:last-child { border-right: none; }
+    .step-item .step-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2px solid var(--color-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 700;
+      transition: all var(--transition);
+    }
+    .step-item.active  { color: var(--color-accent); background: var(--color-accent-glow); }
+    .step-item.active .step-num { background: var(--color-accent); border-color: var(--color-accent); color: #0a1628; }
+    .step-item.done    { color: var(--color-success); }
+    .step-item.done .step-num  { background: var(--color-success); border-color: var(--color-success); color: #fff; }
+
+    /* ── Section panels ───────────────────────────────── */
+    .form-section {
+      display: none;
+      padding: 2rem 2.5rem;
+      animation: fadeIn 0.2s ease;
+    }
+    .form-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-subtitle {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--color-border-soft);
+    }
+
+    /* ── Form layout ──────────────────────────────────── */
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .form-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .form-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .form-row.cols-1 { grid-template-columns: 1fr; }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-label .required { color: var(--color-danger); margin-left: 2px; }
+    .form-input, .form-select, .form-textarea {
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text);
+      font-size: 0.92rem;
+      padding: 0.55rem 0.8rem;
+      width: 100%;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-glow);
+    }
+    .form-input.invalid, .form-select.invalid { border-color: var(--color-danger); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select option { background: var(--color-surface-2); }
+    .form-hint {
+      font-size: 0.77rem;
+      color: var(--color-text-dim);
+      margin-top: 0.2rem;
+    }
+    .field-error {
+      font-size: 0.78rem;
+      color: var(--color-danger);
+      margin-top: 0.2rem;
+      display: none;
+    }
+    .field-error.visible { display: block; }
+
+    /* ── MPA coverage rows ────────────────────────────── */
+    .mpa-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 0.6rem;
+      align-items: end;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border-soft);
+      border-radius: var(--radius-md);
+      padding: 0.8rem;
+      margin-bottom: 0.6rem;
+    }
+    .mpa-row .remove-mpa-btn {
+      height: 36px;
+      width: 36px;
+      padding: 0;
+      border-radius: var(--radius-md);
+      background: var(--color-danger-bg);
+      border: 1px solid var(--color-danger);
+      color: var(--color-danger);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    #addMpaBtn {
+      margin-top: 0.5rem;
+      font-size: 0.82rem;
+    }
+
+    /* ── Checkbox grid ────────────────────────────────── */
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      cursor: pointer;
+      padding: 0.5rem 0.7rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-soft);
+      background: var(--color-surface-2);
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .checkbox-item:hover  { border-color: var(--color-accent); }
+    .checkbox-item input  { accent-color: var(--color-accent); width: 16px; height: 16px; cursor: pointer; }
+
+    /* ── Radio group ──────────────────────────────────── */
+    .radio-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 0.3rem;
+    }
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-soft);
+      background: var(--color-surface-2);
+      transition: border-color var(--transition);
+    }
+    .radio-item:hover { border-color: var(--color-accent); }
+    .radio-item input { accent-color: var(--color-accent); cursor: pointer; }
+
+    /* ── Experience scale ─────────────────────────────── */
+    .experience-scale {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      margin-top: 0.3rem;
+    }
+    .exp-item {
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 0.8rem 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .exp-item input[type="radio"] { display: none; }
+    .exp-item .exp-score { font-size: 1.4rem; font-weight: 700; color: var(--color-text-muted); }
+    .exp-item .exp-label { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 0.3rem; line-height: 1.3; }
+    .exp-item.selected { border-color: var(--color-accent); background: var(--color-accent-glow); }
+    .exp-item.selected .exp-score { color: var(--color-accent); }
+    .exp-item.selected .exp-label { color: var(--color-text); }
+
+    /* ── File upload ──────────────────────────────────── */
+    .file-upload-area {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+    }
+    .file-upload-area:hover, .file-upload-area.drag-over {
+      border-color: var(--color-accent);
+      background: var(--color-accent-glow);
+    }
+    .file-upload-area input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .file-upload-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .file-upload-label { font-size: 0.88rem; color: var(--color-text-muted); }
+    .file-upload-hint  { font-size: 0.77rem; color: var(--color-text-dim); margin-top: 0.3rem; }
+    .file-preview {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.6rem 0.8rem;
+      background: var(--color-success-bg);
+      border: 1px solid var(--color-success);
+      border-radius: var(--radius-md);
+      font-size: 0.82rem;
+      color: var(--color-success);
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .file-preview.visible { display: flex; }
+
+    /* ── Password strength ────────────────────────────── */
+    .password-strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--color-border);
+      margin-top: 0.4rem;
+      overflow: hidden;
+    }
+    .password-strength-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s, background 0.3s;
+      border-radius: 2px;
+    }
+    .strength-weak   { background: var(--color-danger); width: 25%; }
+    .strength-fair   { background: var(--color-warning); width: 50%; }
+    .strength-good   { background: var(--color-info); width: 75%; }
+    .strength-strong { background: var(--color-success); width: 100%; }
+    .strength-text   { font-size: 0.75rem; margin-top: 0.2rem; }
+
+    /* ── Navigation buttons ───────────────────────────── */
+    .form-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem 2.5rem;
+      border-top: 1px solid var(--color-border-soft);
+      background: var(--color-surface-2);
+    }
+    .btn-block { width: 100%; }
+    .step-indicator { font-size: 0.78rem; color: var(--color-text-muted); }
+
+    /* ── Success screen ───────────────────────────────── */
+    #successScreen {
+      display: none;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    #successScreen .success-icon { font-size: 4rem; margin-bottom: 1rem; }
+    #successScreen h2 { color: var(--color-success); margin-bottom: 0.5rem; }
+    #successScreen p  { color: var(--color-text-muted); margin-bottom: 1.5rem; max-width: 420px; margin-inline: auto; }
+
+    /* ── General alert ────────────────────────────────── */
+    .alert-submit {
+      margin: 0 2.5rem 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      display: none;
+    }
+    .alert-submit.visible { display: block; }
+    .alert-danger-msg  { background: var(--color-danger-bg);  border: 1px solid var(--color-danger);  color: var(--color-danger); }
+    .alert-success-msg { background: var(--color-success-bg); border: 1px solid var(--color-success); color: var(--color-success); }
+
+    @media (max-width: 640px) {
+      .form-section { padding: 1.2rem 1rem; }
+      .form-nav     { padding: 1rem; }
+      .form-row.cols-3 { grid-template-columns: 1fr; }
+      .form-row.cols-2 { grid-template-columns: 1fr; }
+      .experience-scale { grid-template-columns: repeat(2,1fr); }
+      .mpa-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="signup-wrapper">
+
+  <!-- Header -->
+  <div class="signup-header">
+    <div class="app-logo">🌊</div>
+    <h1>MPA-FishMApp</h1>
+    <p>Marine Protected Area Monitoring System — Create Account</p>
+  </div>
+
+  <div class="signup-form-card">
+
+    <!-- Step progress bar -->
+    <div class="stepper" id="stepper" role="tablist">
+      <div class="step-item active" data-step="1" role="tab" aria-selected="true" tabindex="0">
+        <div class="step-num">1</div><span>Personal</span>
+      </div>
+      <div class="step-item" data-step="2" role="tab">
+        <div class="step-num">2</div><span>Account</span>
+      </div>
+      <div class="step-item" data-step="3" role="tab">
+        <div class="step-num">3</div><span>Organization</span>
+      </div>
+      <div class="step-item" data-step="4" role="tab">
+        <div class="step-num">4</div><span>MPA Coverage</span>
+      </div>
+      <div class="step-item" data-step="5" role="tab">
+        <div class="step-num">5</div><span>ID &amp; Background</span>
+      </div>
+    </div>
+
+    <!-- Global error banner -->
+    <div id="submitAlert" class="alert-submit" role="alert"></div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 1 — Personal Information
+    ════════════════════════════════════════════════ -->
+    <div class="form-section active" id="section-1">
+      <div class="section-title">👤 Personal Information</div>
+      <div class="section-subtitle">All fields marked <span style="color:var(--color-danger)">*</span> are required.</div>
+
+      <div class="form-row cols-3">
+        <div class="form-group">
+          <label class="form-label" for="firstName">First Name <span class="required">*</span></label>
+          <input type="text" id="firstName" class="form-input" autocomplete="given-name" placeholder="Juan" required />
+          <span class="field-error" id="err-firstName">Please enter your first name.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="middleName">Middle Name</label>
+          <input type="text" id="middleName" class="form-input" autocomplete="additional-name" placeholder="Optional" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lastName">Last Name <span class="required">*</span></label>
+          <input type="text" id="lastName" class="form-input" autocomplete="family-name" placeholder="dela Cruz" required />
+          <span class="field-error" id="err-lastName">Please enter your last name.</span>
+        </div>
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="gender">Gender <span class="required">*</span></label>
+          <select id="gender" class="form-select" required>
+            <option value="">— Select gender —</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Others">Others</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+          <span class="field-error" id="err-gender">Please select your gender.</span>
+        </div>
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" class="form-input" autocomplete="email" placeholder="juan@example.com" required />
+          <span class="field-error" id="err-email">Please enter a valid email address.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirmEmail">Confirm Email <span class="required">*</span></label>
+          <input type="email" id="confirmEmail" class="form-input" placeholder="Re-enter email" required />
+          <span class="field-error" id="err-confirmEmail">Emails do not match.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 2 — Account Credentials
+    ════════════════════════════════════════════════ -->
+    <div class="form-section" id="section-2">
+      <div class="section-title">🔑 Account Credentials</div>
+      <div class="section-subtitle">Choose a username and a strong password for your MPA-FishMApp account.</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="username">Username <span class="required">*</span></label>
+          <input type="text" id="username" class="form-input" autocomplete="username"
+                 placeholder="e.g. jdelacruz" minlength="4" maxlength="30" required />
+          <div class="form-hint">4–30 characters, letters and numbers only.</div>
+          <span class="field-error" id="err-username">Please choose a valid username (4–30 alphanumeric characters).</span>
+        </div>
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="password">Password <span class="required">*</span></label>
+          <input type="password" id="password" class="form-input" autocomplete="new-password"
+                 placeholder="Minimum 8 characters" minlength="8" required />
+          <div class="password-strength-bar"><div class="password-strength-fill" id="strengthFill"></div></div>
+          <div class="strength-text" id="strengthText"></div>
+          <span class="field-error" id="err-password">Password must be at least 8 characters.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirmPassword">Confirm Password <span class="required">*</span></label>
+          <input type="password" id="confirmPassword" class="form-input" autocomplete="new-password"
+                 placeholder="Re-enter password" required />
+          <span class="field-error" id="err-confirmPassword">Passwords do not match.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 3 — Organization Information
+    ════════════════════════════════════════════════ -->
+    <div class="form-section" id="section-3">
+      <div class="section-title">🏢 Organization Information</div>
+      <div class="section-subtitle">Information about the organization or agency you represent.</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="orgName">Name of Organization <span class="required">*</span></label>
+          <input type="text" id="orgName" class="form-input" placeholder="e.g. DENR Region VII" required />
+          <span class="field-error" id="err-orgName">Please enter your organization name.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="orgType">Organization Type <span class="required">*</span></label>
+          <select id="orgType" class="form-select" required>
+            <option value="">— Select type —</option>
+            <option value="Academic">Academic</option>
+            <option value="Government">Government</option>
+            <option value="Non-government">Non-government (NGO/INGO)</option>
+            <option value="Peoples Organization">People's Organization (PO)</option>
+          </select>
+          <span class="field-error" id="err-orgType">Please select an organization type.</span>
+        </div>
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="orgDepartment">Department / Sub-Office</label>
+          <input type="text" id="orgDepartment" class="form-input" placeholder="e.g. Coastal Resources Management Division" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="orgRank">Rank / Position / Role <span class="required">*</span></label>
+          <input type="text" id="orgRank" class="form-input" placeholder="e.g. Marine Biologist II" required />
+          <span class="field-error" id="err-orgRank">Please enter your rank or position.</span>
+        </div>
+      </div>
+
+      <div class="form-row cols-1">
+        <div class="form-group">
+          <label class="form-label" for="orgRoleDescription">Role Description</label>
+          <textarea id="orgRoleDescription" class="form-textarea" rows="2"
+            placeholder="Briefly describe your role and responsibilities related to MPA monitoring…"></textarea>
+        </div>
+      </div>
+
+      <div class="section-subtitle" style="margin-top:1.2rem">Organization Location (Philippines)</div>
+
+      <div class="form-row cols-3">
+        <div class="form-group">
+          <label class="form-label" for="orgRegion">Region <span class="required">*</span></label>
+          <select id="orgRegion" class="form-select" required>
+            <option value="">— Select Region —</option>
+          </select>
+          <span class="field-error" id="err-orgRegion">Please select a region.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="orgProvince">Province <span class="required">*</span></label>
+          <select id="orgProvince" class="form-select" disabled required>
+            <option value="">— Select Province —</option>
+          </select>
+          <span class="field-error" id="err-orgProvince">Please select a province.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="orgCity">City / Municipality <span class="required">*</span></label>
+          <select id="orgCity" class="form-select" disabled required>
+            <option value="">— Select City/Municipality —</option>
+          </select>
+          <span class="field-error" id="err-orgCity">Please select a city or municipality.</span>
+        </div>
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="orgEmail">Organization Email</label>
+          <input type="email" id="orgEmail" class="form-input" placeholder="office@organization.gov.ph" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="orgContact">Organization Contact Details</label>
+          <input type="text" id="orgContact" class="form-input" placeholder="+63 2 8000 0000 or local number" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 4 — MPA Coverage Information
+    ════════════════════════════════════════════════ -->
+    <div class="form-section" id="section-4">
+      <div class="section-title">🐠 MPA Coverage Information</div>
+      <div class="section-subtitle">
+        Please specify the <strong>Region, Province, and City/Municipality</strong> of all MPAs you will monitor.
+        You may add multiple locations.
+      </div>
+
+      <div id="mpaRowsContainer">
+        <!-- MPA rows injected by JS -->
+      </div>
+
+      <button type="button" id="addMpaBtn" class="btn btn-accent">
+        ＋ Add Another MPA Location
+      </button>
+      <span class="field-error visible" id="err-mpa" style="display:none">Please add at least one MPA location.</span>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 5 — ID, Discovery & Experience
+    ════════════════════════════════════════════════ -->
+    <div class="form-section" id="section-5">
+      <div class="section-title">🪪 Identification &amp; Background</div>
+      <div class="section-subtitle">Upload your ID and tell us about your MPA monitoring experience.</div>
+
+      <!-- ID upload -->
+      <div class="form-group" style="margin-bottom:1.5rem">
+        <label class="form-label">Identification Card <span class="required">*</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0"> — Upload a clear photo or scan</span>
+        </label>
+        <div class="file-upload-area" id="fileUploadArea" role="button" aria-label="Upload ID card">
+          <input type="file" id="idCardFile" accept="image/*,.pdf" />
+          <div class="file-upload-icon">📄</div>
+          <div class="file-upload-label">Click or drag &amp; drop your ID here</div>
+          <div class="file-upload-hint">Employment ID, Government ID (PhilSys, Passport, Driver's License) · Max 5 MB · JPG, PNG, PDF</div>
+        </div>
+        <div class="file-preview" id="filePreview">
+          <span>✅</span>
+          <span id="filePreviewName"></span>
+          <button type="button" id="removeFileBtn" style="margin-left:auto;background:none;border:none;color:var(--color-danger);cursor:pointer;font-size:0.85rem">Remove</button>
+        </div>
+        <span class="field-error" id="err-idCard">Please upload a copy of your ID.</span>
+      </div>
+
+      <!-- How did you learn -->
+      <div class="form-group" style="margin-bottom:1.5rem">
+        <label class="form-label">How did you learn about MPA-FishMApp? <span class="required">*</span></label>
+        <div class="checkbox-group" id="howLearnedGroup">
+          <label class="checkbox-item"><input type="checkbox" name="howLearned" value="Training" />Training</label>
+          <label class="checkbox-item"><input type="checkbox" name="howLearned" value="Website" />Website</label>
+          <label class="checkbox-item"><input type="checkbox" name="howLearned" value="Social Media" />Social Media</label>
+          <label class="checkbox-item"><input type="checkbox" name="howLearned" value="Friends/Colleagues" />Friends / Colleagues</label>
+          <label class="checkbox-item"><input type="checkbox" name="howLearned" value="Other" id="howLearnedOtherCheck" />Other</label>
+        </div>
+        <div id="howLearnedOtherWrap" style="display:none;margin-top:0.6rem">
+          <input type="text" id="howLearnedOther" class="form-input" placeholder="Please specify…" />
+        </div>
+        <span class="field-error" id="err-howLearned">Please select at least one option.</span>
+      </div>
+
+      <!-- Received training -->
+      <div class="form-group" style="margin-bottom:1.5rem">
+        <label class="form-label">Have you received training for MPA-FishMApp? <span class="required">*</span></label>
+        <div class="radio-group" id="trainingGroup">
+          <label class="radio-item"><input type="radio" name="receivedTraining" value="yes" id="trainingYes" />Yes</label>
+          <label class="radio-item"><input type="radio" name="receivedTraining" value="no"  id="trainingNo"  />No</label>
+        </div>
+        <div id="trainingDetailsWrap" style="display:none;margin-top:0.8rem">
+          <label class="form-label" for="trainingDetails">When and where was the training given?</label>
+          <textarea id="trainingDetails" class="form-textarea" rows="2"
+            placeholder="e.g. March 15–17, 2024 at DENR-EMB Regional Office, Cebu City"></textarea>
+        </div>
+        <span class="field-error" id="err-receivedTraining">Please select Yes or No.</span>
+      </div>
+
+      <!-- Fish visual census experience -->
+      <div class="form-group" style="margin-bottom:1.5rem">
+        <label class="form-label">Do you have experience in fish visual census surveys? <span class="required">*</span></label>
+        <p class="form-hint" style="margin-bottom:0.6rem">0 = No experience &nbsp;·&nbsp; 1 = Some experience &nbsp;·&nbsp; 2 = Moderate experience &nbsp;·&nbsp; 3 = Extensive experience</p>
+        <div class="experience-scale" id="experienceScale">
+          <label class="exp-item" for="exp0">
+            <input type="radio" name="fishCensusExp" value="0" id="exp0" />
+            <div class="exp-score">0</div>
+            <div class="exp-label">No experience</div>
+          </label>
+          <label class="exp-item" for="exp1">
+            <input type="radio" name="fishCensusExp" value="1" id="exp1" />
+            <div class="exp-score">1</div>
+            <div class="exp-label">Some experience</div>
+          </label>
+          <label class="exp-item" for="exp2">
+            <input type="radio" name="fishCensusExp" value="2" id="exp2" />
+            <div class="exp-score">2</div>
+            <div class="exp-label">Moderate experience</div>
+          </label>
+          <label class="exp-item" for="exp3">
+            <input type="radio" name="fishCensusExp" value="3" id="exp3" />
+            <div class="exp-score">3</div>
+            <div class="exp-label">Extensive experience</div>
+          </label>
+        </div>
+        <span class="field-error" id="err-fishCensusExp">Please select your experience level.</span>
+      </div>
+
+      <!-- First census year -->
+      <div class="form-row cols-2" id="firstYearWrap" style="display:none">
+        <div class="form-group">
+          <label class="form-label" for="fishCensusYear">What year did you first conduct fish visual census for MPA monitoring?</label>
+          <input type="number" id="fishCensusYear" class="form-input"
+                 min="1980" max="2025" placeholder="e.g. 2015" />
+          <div class="form-hint">Leave blank if not applicable.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SUCCESS SCREEN
+    ════════════════════════════════════════════════ -->
+    <div id="successScreen">
+      <div class="success-icon">🎉</div>
+      <h2>Registration Submitted!</h2>
+      <p>
+        Thank you for registering with MPA-FishMApp. Your application is now <strong>pending review</strong>.
+        You will receive a confirmation once your account is approved.
+      </p>
+      <a href="login.html" class="btn btn-primary">Go to Login</a>
+    </div>
+
+    <!-- Navigation buttons -->
+    <div class="form-nav" id="formNav">
+      <button type="button" id="prevBtn" class="btn btn-secondary" style="visibility:hidden">← Back</button>
+      <span class="step-indicator" id="stepIndicator">Step 1 of 5</span>
+      <button type="button" id="nextBtn" class="btn btn-primary">Next →</button>
+    </div>
+
+  </div><!-- /.signup-form-card -->
+
+  <p style="margin-top:1.5rem;font-size:0.82rem;color:var(--color-text-muted)">
+    Already have an account? <a href="login.html" style="color:var(--color-accent)">Sign in</a>
+  </p>
+
+</div><!-- /.signup-wrapper -->
+
+<!-- Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(r => console.log('[SW] Ready', r.scope))
+      .catch(e => console.error('[SW] Error', e));
+  }
+</script>
+
+<!-- sql.js WASM loader -->
+<script src="vendor/sqljs/sql-wasm.js"></script>
+
+<script type="module">
+import { initDB, persistDB, insertUserProfile, emailExistsInProfiles,
+         getUserByUsername } from './js/db.js';
+import { sha256 } from './js/utils.js';
+import { wireCascadingGeo, PH_REGIONS, PH_PROVINCES, PH_CITIES,
+         populateSelect } from './js/philippines-geo.js';
+import { queueForSync } from './js/sync.js';
+
+// ── Init DB ──────────────────────────────────────────────────────────────────
+await initDB();
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentStep = 1;
+const TOTAL_STEPS = 5;
+let idCardBase64  = null;
+let idCardFilename = null;
+let mpaRowCount   = 0;
+
+// ── Stepper ───────────────────────────────────────────────────────────────────
+const stepItems      = document.querySelectorAll('.step-item');
+const sections       = document.querySelectorAll('.form-section');
+const prevBtn        = document.getElementById('prevBtn');
+const nextBtn        = document.getElementById('nextBtn');
+const stepIndicator  = document.getElementById('stepIndicator');
+const submitAlert    = document.getElementById('submitAlert');
+
+function showAlert(msg, type = 'danger') {
+  submitAlert.textContent = msg;
+  submitAlert.className = `alert-submit visible alert-${type}-msg`;
+  submitAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function clearAlert() {
+  submitAlert.className = 'alert-submit';
+  submitAlert.textContent = '';
+}
+
+function goToStep(n) {
+  currentStep = n;
+  sections.forEach((s, i) => s.classList.toggle('active', i + 1 === n));
+  stepItems.forEach((item, i) => {
+    const stepNum = i + 1;
+    item.classList.remove('active', 'done');
+    if (stepNum === n)  item.classList.add('active');
+    if (stepNum < n)    item.classList.add('done');
+    item.setAttribute('aria-selected', stepNum === n ? 'true' : 'false');
+  });
+  prevBtn.style.visibility = n > 1 ? 'visible' : 'hidden';
+  nextBtn.textContent = n === TOTAL_STEPS ? '✔ Submit Registration' : 'Next →';
+  stepIndicator.textContent = `Step ${n} of ${TOTAL_STEPS}`;
+  clearAlert();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+stepItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const target = parseInt(item.dataset.step);
+    if (target < currentStep) goToStep(target);
+  });
+});
+
+prevBtn.addEventListener('click', () => goToStep(currentStep - 1));
+nextBtn.addEventListener('click', () => {
+  if (currentStep === TOTAL_STEPS) handleSubmit();
+  else if (validateStep(currentStep)) goToStep(currentStep + 1);
+});
+
+// ── Field error helpers ───────────────────────────────────────────────────────
+function setError(id, show) {
+  const el = document.getElementById('err-' + id);
+  const inp = document.getElementById(id);
+  if (el) el.classList.toggle('visible', show);
+  if (inp) inp.classList.toggle('invalid', show);
+  return show;
+}
+function clearErrors(ids) { ids.forEach(id => setError(id, false)); }
+function val(id) { return (document.getElementById(id)?.value || '').trim(); }
+/** Returns the effective city value: text input when in manual mode, select value otherwise. */
+function cityVal(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return '';
+  if (sel.style.display === 'none') {
+    return (document.getElementById(selectId + '-text')?.value || '').trim();
+  }
+  return sel.value.trim();
+}
+
+// ── Step validators ───────────────────────────────────────────────────────────
+function validateStep(step) {
+  let ok = true;
+
+  if (step === 1) {
+    if (!val('firstName'))             ok = setError('firstName', true) && false;
+    else setError('firstName', false);
+    if (!val('lastName'))              ok = setError('lastName', true) && false;
+    else setError('lastName', false);
+    if (!val('gender'))                ok = setError('gender', true) && false;
+    else setError('gender', false);
+
+    const email = val('email');
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!emailOk) { ok = setError('email', true) && false; }
+    else {
+      setError('email', false);
+      if (emailExistsInProfiles(email)) {
+        showAlert('This email is already registered. Please use a different email or sign in.');
+        ok = false;
+      }
+    }
+
+    const conf = val('confirmEmail');
+    if (!conf || conf !== email) { ok = setError('confirmEmail', true) && false; }
+    else setError('confirmEmail', false);
+  }
+
+  if (step === 2) {
+    const uname = val('username');
+    if (!uname || uname.length < 4 || !/^[a-zA-Z0-9_]+$/.test(uname)) {
+      ok = setError('username', true) && false;
+    } else {
+      // Check if username already taken
+      const existing = getUserByUsername(uname);
+      if (existing) {
+        showAlert('That username is already taken. Please choose a different one.');
+        ok = false;
+      } else setError('username', false);
+    }
+
+    const pw = val('password');
+    if (!pw || pw.length < 8) { ok = setError('password', true) && false; }
+    else setError('password', false);
+
+    const cpw = val('confirmPassword');
+    if (!cpw || cpw !== pw) { ok = setError('confirmPassword', true) && false; }
+    else setError('confirmPassword', false);
+  }
+
+  if (step === 3) {
+    if (!val('orgName'))     { ok = setError('orgName', true) && false; }    else setError('orgName', false);
+    if (!val('orgType'))     { ok = setError('orgType', true) && false; }    else setError('orgType', false);
+    if (!val('orgRank'))     { ok = setError('orgRank', true) && false; }    else setError('orgRank', false);
+    if (!val('orgRegion'))     { ok = setError('orgRegion', true) && false; }   else setError('orgRegion', false);
+    if (!val('orgProvince'))   { ok = setError('orgProvince', true) && false; }  else setError('orgProvince', false);
+    if (!cityVal('orgCity'))   { ok = setError('orgCity', true) && false; }      else setError('orgCity', false);
+  }
+
+  if (step === 4) {
+    const mpaRows = document.querySelectorAll('.mpa-entry');
+    let hasValid = false;
+    mpaRows.forEach(row => {
+      const r = row.querySelector('.mpa-region-sel')?.value;
+      if (r) hasValid = true;
+    });
+    if (!hasValid) {
+      document.getElementById('err-mpa').style.display = 'block';
+      showAlert('Please add at least one MPA monitoring location.');
+      ok = false;
+    } else {
+      document.getElementById('err-mpa').style.display = 'none';
+    }
+  }
+
+  if (step === 5) {
+    if (!idCardBase64)                        { ok = setError('idCard', true) && false; }
+    else setError('idCard', false);
+
+    const learned = document.querySelectorAll('input[name="howLearned"]:checked');
+    if (!learned.length)                      { ok = setError('howLearned', true) && false; }
+    else setError('howLearned', false);
+
+    const training = document.querySelector('input[name="receivedTraining"]:checked');
+    if (!training)                            { ok = setError('receivedTraining', true) && false; }
+    else setError('receivedTraining', false);
+
+    const expVal = document.querySelector('input[name="fishCensusExp"]:checked');
+    if (!expVal)                              { ok = setError('fishCensusExp', true) && false; }
+    else setError('fishCensusExp', false);
+  }
+
+  if (!ok) showAlert('Please fill in all required fields before continuing.');
+  return ok;
+}
+
+// ── Password strength meter ───────────────────────────────────────────────────
+document.getElementById('password').addEventListener('input', (e) => {
+  const pw   = e.target.value;
+  const fill = document.getElementById('strengthFill');
+  const text = document.getElementById('strengthText');
+  if (!pw) { fill.className = 'password-strength-fill'; text.textContent = ''; return; }
+  let score = 0;
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = ['', 'strength-weak', 'strength-fair', 'strength-good', 'strength-good', 'strength-strong'];
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Good', 'Strong'];
+  const colors = ['', 'var(--color-danger)', 'var(--color-warning)', 'var(--color-info)', 'var(--color-info)', 'var(--color-success)'];
+  fill.className = `password-strength-fill ${levels[score] || ''}`;
+  text.textContent = labels[score] || '';
+  text.style.color = colors[score] || '';
+});
+
+// ── Org location cascading ────────────────────────────────────────────────────
+wireCascadingGeo('orgRegion', 'orgProvince', 'orgCity');
+
+// ── MPA location rows ─────────────────────────────────────────────────────────
+function addMpaRow() {
+  mpaRowCount++;
+  const idx = mpaRowCount;
+  const container = document.getElementById('mpaRowsContainer');
+  const div = document.createElement('div');
+  div.className = 'mpa-row mpa-entry';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Region</label>
+      <select class="form-select mpa-region-sel" id="mpa-region-${idx}">
+        <option value="">— Select Region —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Province</label>
+      <select class="form-select mpa-prov-sel" id="mpa-prov-${idx}" disabled>
+        <option value="">— Select Province —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">City / Municipality</label>
+      <select class="form-select mpa-city-sel" id="mpa-city-${idx}" disabled>
+        <option value="">— Select City/Municipality —</option>
+      </select>
+    </div>
+    <button type="button" class="remove-mpa-btn" title="Remove this location" ${idx === 1 ? 'style="visibility:hidden"' : ''}>✕</button>
+  `;
+  container.appendChild(div);
+
+  // Populate regions
+  populateSelect(`mpa-region-${idx}`, PH_REGIONS, '— Select Region —');
+
+  // Wire cascading
+  wireCascadingGeo(`mpa-region-${idx}`, `mpa-prov-${idx}`, `mpa-city-${idx}`);
+
+  // Remove button
+  div.querySelector('.remove-mpa-btn').addEventListener('click', () => {
+    div.remove();
+    // Show remove button on first row if more than one row
+    const rows = document.querySelectorAll('.mpa-entry');
+    if (rows.length === 1) {
+      rows[0].querySelector('.remove-mpa-btn').style.visibility = 'hidden';
+    }
+  });
+}
+
+document.getElementById('addMpaBtn').addEventListener('click', () => {
+  addMpaRow();
+  const rows = document.querySelectorAll('.mpa-entry');
+  if (rows.length > 1) {
+    rows[0].querySelector('.remove-mpa-btn').style.visibility = 'visible';
+  }
+});
+
+// Add first MPA row on load
+addMpaRow();
+
+// ── How learned — "Other" toggle ──────────────────────────────────────────────
+document.getElementById('howLearnedOtherCheck').addEventListener('change', (e) => {
+  document.getElementById('howLearnedOtherWrap').style.display = e.target.checked ? 'block' : 'none';
+});
+
+// ── Training Yes/No toggle ────────────────────────────────────────────────────
+document.querySelectorAll('input[name="receivedTraining"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    document.getElementById('trainingDetailsWrap').style.display =
+      e.target.value === 'yes' ? 'block' : 'none';
+  });
+});
+
+// ── Experience scale – visual selection ──────────────────────────────────────
+document.querySelectorAll('#experienceScale .exp-item input').forEach(radio => {
+  radio.addEventListener('change', () => {
+    document.querySelectorAll('#experienceScale .exp-item').forEach(item => {
+      item.classList.toggle('selected', item.querySelector('input').checked);
+    });
+    // Show first-year field if experience > 0
+    const val = parseInt(document.querySelector('input[name="fishCensusExp"]:checked')?.value || '0');
+    document.getElementById('firstYearWrap').style.display = val > 0 ? 'grid' : 'none';
+  });
+});
+
+// ── File upload ───────────────────────────────────────────────────────────────
+const fileInput   = document.getElementById('idCardFile');
+const fileArea    = document.getElementById('fileUploadArea');
+const filePreview = document.getElementById('filePreview');
+const filePreviewName = document.getElementById('filePreviewName');
+const removeFileBtn   = document.getElementById('removeFileBtn');
+
+function loadFile(file) {
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showAlert('File is too large. Maximum size is 5 MB.'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    idCardBase64   = e.target.result;
+    idCardFilename = file.name;
+    filePreviewName.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+    filePreview.classList.add('visible');
+    setError('idCard', false);
+  };
+  reader.readAsDataURL(file);
+}
+
+fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
+fileArea.addEventListener('dragover',  (e) => { e.preventDefault(); fileArea.classList.add('drag-over'); });
+fileArea.addEventListener('dragleave', ()  => fileArea.classList.remove('drag-over'));
+fileArea.addEventListener('drop', (e) => {
+  e.preventDefault(); fileArea.classList.remove('drag-over');
+  loadFile(e.dataTransfer.files[0]);
+});
+removeFileBtn.addEventListener('click', () => {
+  idCardBase64 = null; idCardFilename = null;
+  fileInput.value = '';
+  filePreview.classList.remove('visible');
+});
+
+// ── Collect MPA coverage ──────────────────────────────────────────────────────
+function collectMpaCoverage() {
+  const rows = document.querySelectorAll('.mpa-entry');
+  const result = [];
+  rows.forEach(row => {
+    const regionSel = row.querySelector('.mpa-region-sel');
+    const provSel   = row.querySelector('.mpa-prov-sel');
+    const citySel   = row.querySelector('.mpa-city-sel');
+    if (regionSel?.value) {
+      let cityLabel = '';
+      if (citySel) {
+        if (citySel.style.display === 'none') {
+          cityLabel = (document.getElementById(citySel.id + '-text')?.value || '').trim();
+        } else if (citySel.value) {
+          cityLabel = citySel.options[citySel.selectedIndex]?.text || citySel.value;
+        }
+      }
+      result.push({
+        region:   regionSel.options[regionSel.selectedIndex]?.text || regionSel.value,
+        province: provSel?.value ? (provSel.options[provSel.selectedIndex]?.text || provSel.value) : '',
+        city:     cityLabel,
+      });
+    }
+  });
+  return JSON.stringify(result);
+}
+
+// ── Form submit ───────────────────────────────────────────────────────────────
+async function handleSubmit() {
+  clearAlert();
+  if (!validateStep(5)) return;
+
+  nextBtn.disabled = true;
+  nextBtn.textContent = 'Submitting…';
+
+  try {
+    const passwordHash = await sha256(val('password'));
+
+    // Collect "how learned"
+    const learnedChecked = [...document.querySelectorAll('input[name="howLearned"]:checked')];
+    const howLearnedJson = JSON.stringify(learnedChecked.map(c => c.value));
+    const howLearnedOther = document.getElementById('howLearnedOtherCheck').checked
+      ? val('howLearnedOther') : null;
+
+    // Training
+    const trainingRadio    = document.querySelector('input[name="receivedTraining"]:checked');
+    const receivedTraining = trainingRadio?.value === 'yes';
+    const trainingDetails  = receivedTraining ? val('trainingDetails') : null;
+
+    // Experience
+    const expRadio  = document.querySelector('input[name="fishCensusExp"]:checked');
+    const expLevel  = parseInt(expRadio?.value ?? '0');
+    const firstYear = expLevel > 0 ? (val('fishCensusYear') || null) : null;
+
+    // Org location labels (not just codes)
+    const orgRegionSel   = document.getElementById('orgRegion');
+    const orgProvinceSel = document.getElementById('orgProvince');
+    const orgCitySel     = document.getElementById('orgCity');
+    const orgRegionLabel = orgRegionSel.options[orgRegionSel.selectedIndex]?.text || val('orgRegion');
+    const orgProvLabel   = orgProvinceSel.options[orgProvinceSel.selectedIndex]?.text || val('orgProvince');
+    const orgCityLabel   = cityVal('orgCity') || (orgCitySel.options[orgCitySel.selectedIndex]?.text);
+
+    // 1. Insert into users table (inactive until admin approves)
+    const { insertSyncQueueItem } = await import('./js/db.js');
+    const db = (await import('./js/db.js')).getDB();
+    db.run(
+      `INSERT OR IGNORE INTO users (username, password_hash, role, is_active) VALUES (?, ?, ?, 0)`,
+      [val('username'), passwordHash, 'ranger']
+    );
+    const userRes = db.exec(`SELECT id FROM users WHERE username = ?`, [val('username')]);
+    const userId  = userRes[0]?.values[0][0] ?? null;
+
+    // 2. Insert user profile
+    const profileId = insertUserProfile({
+      user_id:               userId,
+      first_name:            val('firstName'),
+      middle_name:           val('middleName') || null,
+      last_name:             val('lastName'),
+      gender:                val('gender'),
+      email:                 val('email'),
+      org_name:              val('orgName'),
+      org_type:              val('orgType'),
+      org_department:        val('orgDepartment') || null,
+      org_rank:              val('orgRank'),
+      org_role_description:  val('orgRoleDescription') || null,
+      org_region:            orgRegionLabel,
+      org_province:          orgProvLabel,
+      org_city:              orgCityLabel,
+      org_email:             val('orgEmail') || null,
+      org_contact:           val('orgContact') || null,
+      mpa_coverage_json:     collectMpaCoverage(),
+      id_card_base64:        idCardBase64,
+      id_card_filename:      idCardFilename,
+      how_learned_json:      howLearnedJson,
+      how_learned_other:     howLearnedOther,
+      received_training:     receivedTraining,
+      training_details:      trainingDetails,
+      fish_census_experience: expLevel,
+      fish_census_first_year: firstYear ? parseInt(firstYear) : null,
+    });
+
+    // 3. Queue for cloud sync (excludes ID base64 for bandwidth)
+    await queueForSync('user_profiles', profileId, 'insert', {
+      profile_id:            profileId,
+      username:              val('username'),
+      first_name:            val('firstName'),
+      last_name:             val('lastName'),
+      email:                 val('email'),
+      org_name:              val('orgName'),
+      org_type:              val('orgType'),
+      org_region:            orgRegionLabel,
+      how_learned_json:      howLearnedJson,
+      received_training:     receivedTraining,
+      fish_census_experience: expLevel,
+    });
+
+    await persistDB();
+
+    // 4. Show success screen
+    document.getElementById('stepper').style.display  = 'none';
+    document.getElementById('formNav').style.display  = 'none';
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('successScreen').style.display = 'block';
+    submitAlert.className = 'alert-submit';
+
+  } catch (err) {
+    console.error('[signup] Submit failed:', err);
+    showAlert('Registration failed: ' + (err.message || 'Unknown error. Please try again.'));
+    nextBtn.disabled = false;
+    nextBtn.textContent = '✔ Submit Registration';
+  }
+}
+
+</script>
+</body>
+</html>

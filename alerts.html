@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alerts — MPA Monitor</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body class="page-alerts">
+
+  <!-- ===== Navigation ===== -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="navbar-brand">
+      <span class="app-logo" aria-hidden="true">🌊</span>
+      <span class="app-name">MPA Monitor</span>
+    </div>
+    <ul class="navbar-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="survey.html"    class="nav-link">New Survey</a></li>
+      <li><a href="map.html"       class="nav-link">Map</a></li>
+      <li><a href="alerts.html"    class="nav-link active" aria-current="page">
+        Alerts <span id="alertBadge" class="badge badge-danger hidden">0</span>
+      </a></li>
+      <li><a href="reports.html"   class="nav-link">Reports</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="navUsername" class="text-muted nav-username"></span>
+      <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
+    </div>
+  </nav>
+
+  <!-- ===== Page Content ===== -->
+  <main class="main-content">
+    <header class="page-header">
+      <h2 class="page-title">Alerts</h2>
+      <div class="page-header-actions">
+        <label for="alertFilter" class="sr-only">Filter by status</label>
+        <select id="alertFilter" class="form-select form-select--sm">
+          <option value="active">Active only</option>
+          <option value="all">All alerts</option>
+          <option value="acknowledged">Acknowledged</option>
+        </select>
+      </div>
+    </header>
+
+    <section class="card table-card">
+      <div class="table-responsive">
+        <table class="table" id="alertsTable">
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Type</th>
+              <th>Severity</th>
+              <th>Message</th>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="alertsTableBody">
+            <tr><td colspan="7" class="text-muted text-center">Loading alerts…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(r => console.log('[SW] Ready', r.scope))
+        .catch(e => console.error('[SW] Error', e));
+    }
+  </script>
+
+  <!-- sql.js WASM loader — must be a classic script so initSqlJs is global -->
+  <script src="vendor/sqljs/sql-wasm.js"></script>
+  <script type="module">
+    import { requireAuth, currentUser, logout } from './js/auth.js';
+    import { initDB } from './js/db.js';
+    import { renderAlerts, updateAlertBadge } from './js/alerts.js';
+    import { initSync } from './js/sync.js';
+    import { initWatsonxChat } from './js/watsonx.js';
+
+    requireAuth();
+
+    const user = currentUser();
+    if (user) document.getElementById('navUsername').textContent = user.username;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => logout());
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initDB();
+      initSync();
+      initWatsonxChat({ currentUser });
+
+      const currentFilter = () => document.getElementById('alertFilter').value || 'active';
+      renderAlerts('alertsTableBody', { filter: currentFilter() });
+      updateAlertBadge();
+
+      document.getElementById('alertFilter').addEventListener('change', () => {
+        renderAlerts('alertsTableBody', { filter: currentFilter() });
+      });
+    });
+  </script>
+
+</body>
+</html>

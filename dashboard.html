@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — MPA Monitor</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body class="page-dashboard">
+
+  <!-- ===== Navigation ===== -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="navbar-brand">
+      <span class="app-logo" aria-hidden="true">🌊</span>
+      <span class="app-name">MPA Monitor</span>
+    </div>
+    <ul class="navbar-links">
+      <li><a href="dashboard.html" class="nav-link active" aria-current="page">Dashboard</a></li>
+      <li><a href="survey.html"    class="nav-link">New Survey</a></li>
+      <li><a href="map.html"       class="nav-link">Map</a></li>
+      <li><a href="alerts.html"    class="nav-link">
+        Alerts <span id="alertBadge" class="badge badge-danger hidden">0</span>
+      </a></li>
+      <li><a href="reports.html"   class="nav-link">Reports</a></li>
+      <li id="navUsersItem" class="hidden"><a href="#" class="nav-link" id="navUsersLink">👥 Users</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="navUsername" class="text-muted nav-username"></span>
+      <span id="sync-count" class="badge badge-warning hidden" title="Pending sync items">⇅ <span id="syncBadge">0</span></span>
+      <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
+    </div>
+  </nav>
+
+  <!-- ===== Page Content ===== -->
+  <main class="main-content">
+
+    <!-- Dashboard view (KPIs, charts, surveys) -->
+    <div id="section-dashboard">
+    <header class="page-header">
+      <h2 class="page-title">Dashboard</h2>
+      <a href="survey.html" class="btn btn-primary">+ New Survey</a>
+    </header>
+
+    <!-- KPI Cards -->
+    <section class="kpi-grid" aria-label="Key metrics">
+      <div class="card kpi-card" id="kpiTotalBiomass">
+        <div class="kpi-label">Total Fish Biomass</div>
+        <div class="kpi-value" id="kpiTotalBiomassValue">—</div>
+        <div class="kpi-unit">kg</div>
+      </div>
+      <div class="card kpi-card" id="kpiCoralCover">
+        <div class="kpi-label">Avg Hard Coral Cover</div>
+        <div class="kpi-value" id="kpiCoralCoverValue">—</div>
+        <div class="kpi-unit">%</div>
+      </div>
+      <div class="card kpi-card" id="kpiCarbonSeq">
+        <div class="kpi-label">Carbon Sequestration</div>
+        <div class="kpi-value" id="kpiCarbonSeqValue">—</div>
+        <div class="kpi-unit">tons / year</div>
+      </div>
+      <div class="card kpi-card kpi-card--alerts" id="kpiActiveAlerts">
+        <div class="kpi-label">Active Alerts</div>
+        <div class="kpi-value" id="kpiActiveAlertsValue">—</div>
+        <div class="kpi-unit"><a href="alerts.html">View all →</a></div>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts-grid">
+      <div class="card chart-card">
+        <h3 class="card-title">Fish Biomass Trend (30 days)</h3>
+        <canvas id="chartBiomassTrend" aria-label="Fish biomass trend chart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3 class="card-title">Coral Cover by Site</h3>
+        <canvas id="chartCoralCover" aria-label="Coral cover by site chart"></canvas>
+      </div>
+    </section>
+
+    <!-- Recent Surveys -->
+    <section class="card table-card">
+      <h3 class="card-title">Recent Surveys</h3>
+      <div class="table-responsive">
+        <table class="table" id="recentSurveysTable">
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Date</th>
+              <th>Surveyor</th>
+              <th>Method</th>
+              <th>Biomass (kg)</th>
+              <th>Coral Cover (%)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="recentSurveysBody">
+            <tr><td colspan="7" class="text-muted text-center">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    </div><!-- /section-dashboard -->
+
+    <!-- ===== User Management Panel (admin only) ===== -->
+    <section id="section-users" class="hidden" aria-label="User Management">
+      <header class="page-header" style="margin-top:1.5rem">
+        <h2 class="page-title">User Management</h2>
+      </header>
+
+      <!-- Pending Registrations -->
+      <div class="card table-card" style="margin-bottom:1.5rem">
+        <h3 class="card-title">⏳ Pending Registrations
+          <span id="pendingCount" class="badge badge-warning" style="margin-left:.5rem">0</span>
+        </h3>
+        <div class="table-responsive">
+          <table class="table" id="pendingUsersTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Organization</th>
+                <th>Role</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pendingUsersBody">
+              <tr><td colspan="6" class="text-muted text-center">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- All Users -->
+      <div class="card table-card">
+        <h3 class="card-title">👤 All Registered Users</h3>
+        <div class="table-responsive">
+          <table class="table" id="allUsersTable">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Organization</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="allUsersBody">
+              <tr><td colspan="8" class="text-muted text-center">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(r => console.log('[SW] Ready', r.scope))
+        .catch(e => console.error('[SW] Error', e));
+    }
+  </script>
+
+  <!-- sql.js WASM loader — must be a classic script so initSqlJs is global -->
+  <script src="vendor/sqljs/sql-wasm.js"></script>
+  <!-- Chart.js — global Chart object used by charts.js -->
+  <script src="vendor/chartjs/chart.umd.min.js"></script>
+
+  <script type="module">
+    import { requireAuth, currentUser, logout } from './js/auth.js';
+    import { initDB, getDashboardStats, getSurveys,
+             getBiomassTrend, getCoralCoverBySite,
+             getAllUserProfiles, setUserActive, setUserStatus,
+             setUserRole, persistDB } from './js/db.js';
+    import { renderBiomassTrend, renderCoralCoverBySite } from './js/charts.js';
+    import { getSyncQueueCount, initSync } from './js/sync.js';
+    import { initWatsonxChat } from './js/watsonx.js';
+
+    // Guard — redirect to login if not authenticated
+    requireAuth();
+
+    // Show username in nav; reveal Users tab for admins
+    const user = currentUser();
+    if (user) {
+      document.getElementById('navUsername').textContent = user.username;
+      if (user.role === 'admin') {
+        document.getElementById('navUsersItem').classList.remove('hidden');
+      }
+    }
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => logout());
+
+    // ── Admin tab toggle ──────────────────────────────────────────────────────
+
+    const sectionUsers    = document.getElementById('section-users');
+    const sectionDashboard = document.getElementById('section-dashboard');
+
+    function showDashboard() {
+      sectionDashboard.classList.remove('hidden');
+      sectionUsers.classList.add('hidden');
+      document.querySelector('.nav-link[href="dashboard.html"]').classList.add('active');
+      document.getElementById('navUsersLink')?.classList.remove('active');
+    }
+
+    function showUsersPanel() {
+      sectionDashboard.classList.add('hidden');
+      sectionUsers.classList.remove('hidden');
+      document.querySelector('.nav-link[href="dashboard.html"]').classList.remove('active');
+      document.getElementById('navUsersLink')?.classList.add('active');
+      loadPendingUsers();
+      loadAllUsers();
+    }
+
+    document.getElementById('navUsersLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showUsersPanel();
+    });
+
+    document.querySelector('.nav-link[href="dashboard.html"]').addEventListener('click', (e) => {
+      if (sectionUsers && !sectionUsers.classList.contains('hidden')) {
+        e.preventDefault();
+        showDashboard();
+      }
+    });
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function fmt(n, decimals = 0) {
+      if (n == null || isNaN(n)) return '—';
+      return Number(n).toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+    }
+
+    function syncBadge(status) {
+      if (status === 'synced')  return '<span class="badge badge-success">Synced</span>';
+      if (status === 'failed')  return '<span class="badge badge-danger">Failed</span>';
+      return '<span class="badge badge-warning">Pending</span>';
+    }
+
+    // ── Populate KPI Cards ────────────────────────────────────────────────────
+
+    function populateKPIs(stats) {
+      document.getElementById('kpiTotalBiomassValue').textContent =
+        stats.totalBiomass != null ? fmt(stats.totalBiomass) : '—';
+      document.getElementById('kpiCoralCoverValue').textContent =
+        stats.avgCoralCover != null ? fmt(stats.avgCoralCover, 1) : '—';
+      document.getElementById('kpiCarbonSeqValue').textContent =
+        stats.totalCarbonSeq != null ? fmt(stats.totalCarbonSeq, 1) : '—';
+
+      const alertVal = document.getElementById('kpiActiveAlertsValue');
+      alertVal.textContent = stats.activeAlertCount ?? '—';
+      const kpiAlertCard = document.getElementById('kpiActiveAlerts');
+      if (stats.activeAlertCount > 0) kpiAlertCard.classList.add('kpi-card--critical');
+      else kpiAlertCard.classList.remove('kpi-card--critical');
+    }
+
+    // ── Populate Recent Surveys Table ─────────────────────────────────────────
+
+    function populateSurveysTable(surveys) {
+      const tbody = document.getElementById('recentSurveysBody');
+      if (!surveys || surveys.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-muted text-center" style="padding:2rem">
+          No surveys recorded yet. <a href="survey.html">Start a new survey →</a>
+        </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = surveys.map(s => `
+        <tr>
+          <td>${s.site_name || '—'}</td>
+          <td>${s.timestamp ? s.timestamp.slice(0, 10) : '—'}</td>
+          <td>${s.surveyor || '—'}</td>
+          <td><span class="badge">${s.method || '—'}</span></td>
+          <td>${s.total_biomass_kg != null ? fmt(s.total_biomass_kg) + ' kg' : '—'}</td>
+          <td>${s.cover_percent != null ? fmt(s.cover_percent, 1) + '%' : '—'}</td>
+          <td>${syncBadge(s.sync_status)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ── Update Sync Badge ─────────────────────────────────────────────────────
+
+    function updateSyncBadge() {
+      const count = getSyncQueueCount();
+      const badge = document.getElementById('syncBadge');
+      const wrapper = document.getElementById('sync-count');
+      if (badge) badge.textContent = count;
+      if (wrapper) wrapper.classList.toggle('hidden', count === 0);
+    }
+
+    // ── Admin: Pending Registrations ──────────────────────────────────────────
+
+    function statusBadge(status) {
+      const map = {
+        pending:  '<span class="badge badge-warning">Pending</span>',
+        approved: '<span class="badge badge-success">Approved</span>',
+        rejected: '<span class="badge badge-danger">Rejected</span>',
+        disabled: '<span class="badge">Disabled</span>',
+      };
+      return map[status] || `<span class="badge">${status}</span>`;
+    }
+
+    function activeBadge(isActive) {
+      return isActive
+        ? '<span class="badge badge-success">Active</span>'
+        : '<span class="badge badge-danger">Inactive</span>';
+    }
+
+    function loadPendingUsers() {
+      const tbody = document.getElementById('pendingUsersBody');
+      const profiles = getAllUserProfiles().filter(p => p.account_status === 'pending');
+      document.getElementById('pendingCount').textContent = profiles.length;
+
+      if (!profiles.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-muted text-center" style="padding:1.5rem">No pending registrations.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = profiles.map(p => `
+        <tr data-uid="${p.user_id}">
+          <td>${p.first_name} ${p.last_name}</td>
+          <td>${p.email}</td>
+          <td>${p.org_name || '—'}<br><small class="text-muted">${p.org_type || ''}</small></td>
+          <td>${p.role}</td>
+          <td>${p.created_at ? p.created_at.slice(0, 10) : '—'}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-primary btn-sm approve-btn" data-uid="${p.user_id}">✔ Approve</button>
+            <button class="btn btn-danger btn-sm reject-btn"  data-uid="${p.user_id}" style="margin-left:.3rem">✕ Reject</button>
+          </td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid = Number(btn.dataset.uid);
+          setUserStatus(uid, 'approved');
+          setUserActive(uid, 1);
+          await persistDB();
+          loadPendingUsers();
+          loadAllUsers();
+        });
+      });
+
+      tbody.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid = Number(btn.dataset.uid);
+          setUserStatus(uid, 'rejected');
+          setUserActive(uid, 0);
+          await persistDB();
+          loadPendingUsers();
+          loadAllUsers();
+        });
+      });
+    }
+
+    // ── Admin: All Users ──────────────────────────────────────────────────────
+
+    function loadAllUsers() {
+      const tbody = document.getElementById('allUsersBody');
+      const profiles = getAllUserProfiles();
+
+      if (!profiles.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-muted text-center" style="padding:1.5rem">No registered users yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = profiles.map(p => `
+        <tr data-uid="${p.user_id}">
+          <td><strong>${p.username}</strong></td>
+          <td>${p.first_name} ${p.last_name}</td>
+          <td>${p.email}</td>
+          <td>${p.org_name || '—'}</td>
+          <td>
+            <select class="form-select role-sel" data-uid="${p.user_id}" style="padding:.2rem .4rem;font-size:.82rem;width:auto">
+              <option value="ranger"${p.role === 'ranger' ? ' selected' : ''}>Ranger</option>
+              <option value="admin"${p.role === 'admin'  ? ' selected' : ''}>Admin</option>
+            </select>
+          </td>
+          <td>${statusBadge(p.account_status)} ${activeBadge(p.is_active)}</td>
+          <td>${p.created_at ? p.created_at.slice(0, 10) : '—'}</td>
+          <td style="white-space:nowrap">
+            ${p.is_active
+              ? `<button class="btn btn-secondary btn-sm disable-btn" data-uid="${p.user_id}">Disable</button>`
+              : `<button class="btn btn-primary btn-sm enable-btn"  data-uid="${p.user_id}">Enable</button>`
+            }
+          </td>
+        </tr>
+      `).join('');
+
+      // Role change
+      tbody.querySelectorAll('.role-sel').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const uid = Number(sel.dataset.uid);
+          setUserRole(uid, sel.value);
+          await persistDB();
+        });
+      });
+
+      // Enable
+      tbody.querySelectorAll('.enable-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid = Number(btn.dataset.uid);
+          setUserActive(uid, 1);
+          setUserStatus(uid, 'approved');
+          await persistDB();
+          loadAllUsers();
+          loadPendingUsers();
+        });
+      });
+
+      // Disable
+      tbody.querySelectorAll('.disable-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid = Number(btn.dataset.uid);
+          setUserActive(uid, 0);
+          setUserStatus(uid, 'disabled');
+          await persistDB();
+          loadAllUsers();
+        });
+      });
+    }
+
+    // ── Main Load ─────────────────────────────────────────────────────────────
+
+    async function loadDashboard() {
+      try {
+        await initDB();
+        initSync();
+
+        // Init watsonx Assistant with live MPA context
+        initWatsonxChat({ getDashboardStats, currentUser });
+
+        const [stats, surveys, biomassTrend, coralBySite] = await Promise.all([
+          Promise.resolve(getDashboardStats()),
+          Promise.resolve(getSurveys({ limit: 10 })),
+          Promise.resolve(getBiomassTrend(30)),
+          Promise.resolve(getCoralCoverBySite()),
+        ]);
+
+        populateKPIs(stats);
+        populateSurveysTable(surveys);
+        renderBiomassTrend('chartBiomassTrend', biomassTrend);
+        renderCoralCoverBySite('chartCoralCover', coralBySite);
+        updateSyncBadge();
+
+        // Update alert badge in nav
+        if (stats.activeAlertCount > 0) {
+          const alertBadge = document.getElementById('alertBadge');
+          if (alertBadge) {
+            alertBadge.textContent = stats.activeAlertCount;
+            alertBadge.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        console.error('[dashboard] Load failed:', err);
+      }
+    }
+
+    // Load on DOM ready
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadDashboard, 30_000);
+  </script>
+
+</body>
+</html>

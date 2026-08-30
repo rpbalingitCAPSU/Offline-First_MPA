@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/settings.json
+.vscode/launch.json
+
+# Python (inference service)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Java / Oracle JDK folder (large binary, not needed in repo)
+oracleJdk-26/
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+
+# Local environment files
+.env
+.env.local

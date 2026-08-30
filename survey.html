@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Survey — MPA Monitor</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body class="page-survey">
+
+  <!-- ===== Navigation ===== -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="navbar-brand">
+      <span class="app-logo" aria-hidden="true">🌊</span>
+      <span class="app-name">MPA Monitor</span>
+    </div>
+    <ul class="navbar-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="survey.html"    class="nav-link active" aria-current="page">New Survey</a></li>
+      <li><a href="map.html"       class="nav-link">Map</a></li>
+      <li><a href="alerts.html"    class="nav-link">
+        Alerts <span id="alertBadge" class="badge badge-danger hidden">0</span>
+      </a></li>
+      <li><a href="reports.html"   class="nav-link">Reports</a></li>
+    </ul>
+    <div class="navbar-user">
+      <span id="navUsername" class="text-muted nav-username"></span>
+      <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
+    </div>
+  </nav>
+
+  <!-- ===== Page Content ===== -->
+  <main class="main-content">
+    <header class="page-header">
+      <h2 class="page-title">New Survey</h2>
+      <a href="dashboard.html" class="btn btn-ghost">← Back</a>
+    </header>
+
+    <form id="surveyForm" class="form card form-card" novalidate>
+
+      <!-- Survey Metadata -->
+      <section class="form-section">
+        <h3 class="form-section-title">Survey Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="siteId" class="form-label">MPA Site <span class="required">*</span></label>
+            <select id="siteId" name="siteId" class="form-select" required>
+              <option value="">— Select site —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="surveyDate" class="form-label">Date &amp; Time <span class="required">*</span></label>
+            <input type="datetime-local" id="surveyDate" name="surveyDate" class="form-input" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Survey Method <span class="required">*</span></label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="method" value="Visual Census" checked /> Visual Census
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="method" value="AI-Assisted" /> AI-Assisted
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="method" value="Transect" /> Transect
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="notes" class="form-label">Notes</label>
+          <textarea id="notes" name="notes" class="form-textarea" rows="3" placeholder="General observations…"></textarea>
+        </div>
+      </section>
+
+      <!-- AI Camera Capture -->
+      <section class="form-section" id="cameraSectionWrapper">
+        <h3 class="form-section-title">AI Camera Analysis</h3>
+        <div class="camera-section">
+          <div class="camera-preview-wrapper">
+            <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
+            <canvas id="cameraCanvas" class="hidden"></canvas>
+          </div>
+          <div class="camera-controls">
+            <button type="button" id="startCameraBtn"   class="btn btn-secondary">Start Camera</button>
+            <button type="button" id="captureFrameBtn"  class="btn btn-secondary" disabled>Capture Frame</button>
+            <button type="button" id="analyseAIBtn"     class="btn btn-accent"    disabled>Analyse with AI</button>
+            <div id="inferenceStatus" class="badge badge-secondary">AI Service: checking…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fish Biomass -->
+      <section class="form-section">
+        <h3 class="form-section-title">Fish Biomass</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fishSpecies" class="form-label">Dominant Species</label>
+            <input type="text" id="fishSpecies" name="fishSpecies" class="form-input" placeholder="e.g. Lutjanus gibbus" />
+          </div>
+          <div class="form-group">
+            <label for="fishCount" class="form-label">Count</label>
+            <input type="number" id="fishCount" name="fishCount" class="form-input" min="0" placeholder="0" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="avgWeightKg" class="form-label">Avg Weight (kg)</label>
+            <input type="number" id="avgWeightKg" name="avgWeightKg" class="form-input" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label for="totalBiomassKg" class="form-label">Total Biomass (kg)</label>
+            <input type="number" id="totalBiomassKg" name="totalBiomassKg" class="form-input" min="0" step="0.01" readonly placeholder="Auto-calculated" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="biomassConfidence" class="form-label">Confidence: <span id="biomassConfidenceVal">50</span>%</label>
+          <input type="range" id="biomassConfidence" name="biomassConfidence" class="form-range" min="0" max="100" value="50" />
+        </div>
+        <input type="hidden" id="biomassSource" name="biomassSource" value="manual" />
+      </section>
+
+      <!-- Hard Coral Cover -->
+      <section class="form-section">
+        <h3 class="form-section-title">Hard Coral Cover</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="coralCoverPct" class="form-label">Cover (%) <span class="required">*</span></label>
+            <input type="number" id="coralCoverPct" name="coralCoverPct" class="form-input" min="0" max="100" step="0.1" placeholder="0.0" required />
+          </div>
+          <div class="form-group">
+            <label for="bleachingPct" class="form-label">Bleaching (%)</label>
+            <input type="number" id="bleachingPct" name="bleachingPct" class="form-input" min="0" max="100" step="0.1" placeholder="0.0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="speciesComposition" class="form-label">Species Composition Notes</label>
+          <textarea id="speciesComposition" name="speciesComposition" class="form-textarea" rows="2" placeholder="e.g. Acropora 40%, Porites 30%…"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="coralConfidence" class="form-label">Confidence: <span id="coralConfidenceVal">50</span>%</label>
+          <input type="range" id="coralConfidence" name="coralConfidence" class="form-range" min="0" max="100" value="50" />
+        </div>
+        <input type="hidden" id="coralSource" name="coralSource" value="manual" />
+      </section>
+
+      <!-- Carbon Sequestration -->
+      <section class="form-section">
+        <h3 class="form-section-title">Carbon Sequestration</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="carbonTonsYear" class="form-label">Estimated (tons/year)</label>
+            <input type="number" id="carbonTonsYear" name="carbonTonsYear" class="form-input" min="0" step="0.01" placeholder="Auto-calculated or enter manually" />
+          </div>
+          <div class="form-group">
+            <label for="carbonMethodology" class="form-label">Methodology</label>
+            <input type="text" id="carbonMethodology" name="carbonMethodology" class="form-input" placeholder="e.g. Coral cover proxy" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="carbonNotes" class="form-label">Notes</label>
+          <textarea id="carbonNotes" name="carbonNotes" class="form-textarea" rows="2"></textarea>
+        </div>
+      </section>
+
+      <!-- Form Actions -->
+      <div id="surveyError" class="alert alert-danger hidden" role="alert"></div>
+      <div class="form-actions">
+        <a href="dashboard.html" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary" id="saveSurveyBtn">Save Survey</button>
+      </div>
+
+    </form>
+  </main>
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(r => console.log('[SW] Ready', r.scope))
+        .catch(e => console.error('[SW] Error', e));
+    }
+  </script>
+
+  <!-- sql.js WASM loader — must be a classic script so initSqlJs is global -->
+  <script src="vendor/sqljs/sql-wasm.js"></script>
+  <script type="module">
+    import { requireAuth, currentUser, logout } from './js/auth.js';
+    import {
+      initDB, persistDB, getAllSites, getSiteById,
+      insertSurvey, insertFishBiomass, insertCoralCover, insertCarbonSeq,
+    } from './js/db.js';
+    import { checkInferenceService, callInferenceAPI, captureFrame, startCamera, stopCamera } from './js/inference.js';
+    import { queueForSync } from './js/sync.js';
+    import { checkAndGenerateAlerts } from './js/alerts.js';
+    import { initWatsonxChat } from './js/watsonx.js';
+
+    /* ── Auth ─────────────────────────────────────────────────── */
+    requireAuth();
+    const user = currentUser();
+    if (user) document.getElementById('navUsername').textContent = user.username;
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      logout();
+      window.location.replace('login.html');
+    });
+
+    /* ── Element refs ─────────────────────────────────────────── */
+    const siteEl       = document.getElementById('siteId');
+    const dateEl       = document.getElementById('surveyDate');
+    const countEl      = document.getElementById('fishCount');
+    const weightEl     = document.getElementById('avgWeightKg');
+    const totalEl      = document.getElementById('totalBiomassKg');
+    const coralPctEl   = document.getElementById('coralCoverPct');
+    const bleachEl     = document.getElementById('bleachingPct');
+    const carbonEl     = document.getElementById('carbonTonsYear');
+    const videoEl      = document.getElementById('cameraPreview');
+    const startCamBtn  = document.getElementById('startCameraBtn');
+    const capBtn       = document.getElementById('captureFrameBtn');
+    const aiBtn        = document.getElementById('analyseAIBtn');
+    const aiBadge      = document.getElementById('inferenceStatus');
+    const errorBox     = document.getElementById('surveyError');
+
+    /* ── Default timestamp ────────────────────────────────────── */
+    const now = new Date();
+    // datetime-local expects "YYYY-MM-DDTHH:MM"
+    dateEl.value = now.toISOString().slice(0, 16);
+
+    /* ── Toast helper ─────────────────────────────────────────── */
+    function showToast(message, type = 'success') {
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = message;
+      t.style.cssText = [
+        'position:fixed', 'bottom:1.5rem', 'right:1.5rem',
+        'padding:0.75rem 1.25rem', 'border-radius:0.5rem',
+        'font-size:0.9rem', 'z-index:9999',
+        'max-width:360px', 'line-height:1.4',
+        type === 'success' ? 'background:#1a6b3a;color:#d4edda;border:1px solid #2d9e5f'
+          : type === 'warning' ? 'background:#7a4a00;color:#fff3cd;border:1px solid #c87800'
+          : 'background:#6b1a1a;color:#fdd;border:1px solid #9e2d2d',
+      ].join(';');
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    /* ── Populate site dropdown ───────────────────────────────── */
+    async function populateSites() {
+      const sites = getAllSites();
+      sites.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        siteEl.appendChild(opt);
+      });
+    }
+
+    /* ── Auto-calc total biomass (count × avg weight) ─────────── */
+    function calcBiomass() {
+      const count  = parseFloat(countEl.value)  || 0;
+      const weight = parseFloat(weightEl.value) || 0;
+      totalEl.value = (count * weight).toFixed(2);
+    }
+    countEl.addEventListener('input', calcBiomass);
+    weightEl.addEventListener('input', calcBiomass);
+
+    /* ── Auto-calc carbon sequestration ──────────────────────── */
+    // Formula: cover_percent * area_km2 * 0.21  (user can override)
+    let _carbonAutoSet = false;
+    function calcCarbon() {
+      const cover   = parseFloat(coralPctEl.value) || 0;
+      const siteId  = parseInt(siteEl.value, 10);
+      if (!cover || !siteId) return;
+      const site = getSiteById(siteId);
+      if (!site || !site.area_km2) return;
+      const est = (cover * site.area_km2 * 0.21).toFixed(2);
+      carbonEl.value = est;
+      _carbonAutoSet = true;
+    }
+    coralPctEl.addEventListener('input', calcCarbon);
+    siteEl.addEventListener('change', calcCarbon);
+    // Let user override without triggering recalc
+    carbonEl.addEventListener('input', () => { _carbonAutoSet = false; });
+
+    /* ── Confidence slider labels ─────────────────────────────── */
+    document.getElementById('biomassConfidence').addEventListener('input', (e) => {
+      document.getElementById('biomassConfidenceVal').textContent = e.target.value;
+    });
+    document.getElementById('coralConfidence').addEventListener('input', (e) => {
+      document.getElementById('coralConfidenceVal').textContent = e.target.value;
+    });
+
+    /* ── Camera ───────────────────────────────────────────────── */
+    let _stream       = null;
+    let _capturedFrame = null;
+
+    function handleStopCamera() {
+      stopCamera(_stream);
+      _stream = null;
+      videoEl.srcObject = null;
+      startCamBtn.textContent = 'Start Camera';
+      startCamBtn.onclick = null;
+      startCamBtn.addEventListener('click', handleStartCamera);
+      capBtn.disabled = true;
+      aiBtn.disabled  = true;
+      _capturedFrame  = null;
+    }
+
+    async function handleStartCamera() {
+      startCamBtn.removeEventListener('click', handleStartCamera);
+      try {
+        _stream = await startCamera(videoEl);
+        startCamBtn.textContent = 'Stop Camera';
+        startCamBtn.onclick = handleStopCamera;
+        capBtn.disabled = false;
+      } catch (err) {
+        startCamBtn.addEventListener('click', handleStartCamera);
+        showToast(`Camera error: ${err.message}`, 'danger');
+      }
+    }
+
+    startCamBtn.addEventListener('click', handleStartCamera);
+
+    capBtn.addEventListener('click', () => {
+      if (!_stream) return;
+      _capturedFrame = captureFrame(videoEl);
+
+      // Show thumbnail
+      let thumb = document.getElementById('captureThumb');
+      if (!thumb) {
+        thumb = document.createElement('img');
+        thumb.id = 'captureThumb';
+        thumb.style.cssText = 'width:160px;border-radius:4px;margin-top:0.5rem;border:1px solid var(--border-color)';
+        videoEl.parentElement.appendChild(thumb);
+      }
+      thumb.src = _capturedFrame;
+
+      aiBtn.disabled = false;
+    });
+
+    aiBtn.addEventListener('click', async () => {
+      if (!_capturedFrame) return;
+      aiBtn.disabled = true;
+      aiBtn.textContent = 'Analysing…';
+
+      try {
+        const result = await callInferenceAPI(_capturedFrame);
+
+        // Pre-populate fish biomass
+        if (result.fish_biomass_kg != null) {
+          totalEl.value = parseFloat(result.fish_biomass_kg).toFixed(2);
+        }
+        if (result.species_detected && result.species_detected.length) {
+          document.getElementById('fishSpecies').value = result.species_detected.join(', ');
+        }
+
+        // Pre-populate coral cover
+        if (result.coral_cover_percent != null) {
+          coralPctEl.value = parseFloat(result.coral_cover_percent).toFixed(1);
+        }
+        if (result.bleaching_percent != null) {
+          bleachEl.value = parseFloat(result.bleaching_percent).toFixed(1);
+        }
+
+        // Set confidence sliders
+        if (result.confidence != null) {
+          const pct = Math.round(result.confidence * 100);
+          document.getElementById('biomassConfidence').value = pct;
+          document.getElementById('biomassConfidenceVal').textContent = pct;
+          document.getElementById('coralConfidence').value = pct;
+          document.getElementById('coralConfidenceVal').textContent = pct;
+        }
+
+        // Mark source as AI
+        document.getElementById('biomassSource').value = 'ai';
+        document.getElementById('coralSource').value   = 'ai';
+
+        // Auto-calc carbon now that coral cover is set
+        calcCarbon();
+
+        showToast('AI analysis complete ✓', 'success');
+      } catch (err) {
+        showToast('AI service unavailable — enter data manually', 'warning');
+      } finally {
+        aiBtn.disabled = false;
+        aiBtn.textContent = 'Analyse with AI';
+      }
+    });
+
+    /* ── AI service health badge on load ─────────────────────── */
+    checkInferenceService().then(online => {
+      if (online) {
+        aiBadge.textContent = 'AI Service: Online';
+        aiBadge.className   = 'badge badge-success';
+      } else {
+        aiBadge.textContent = 'AI Service: Offline';
+        aiBadge.className   = 'badge badge-warning';
+      }
+    });
+
+    /* ── Form validation ──────────────────────────────────────── */
+    function validateForm() {
+      const errors = [];
+      if (!siteEl.value)         errors.push('Please select an MPA site.');
+      if (!dateEl.value)         errors.push('Please enter a survey date and time.');
+      if (!document.querySelector('input[name="method"]:checked'))
+                                 errors.push('Please select a survey method.');
+      const cover = parseFloat(coralPctEl.value);
+      if (isNaN(cover) || cover < 0 || cover > 100)
+                                 errors.push('Coral cover must be between 0 and 100.');
+      return errors;
+    }
+
+    /* ── Form submit ──────────────────────────────────────────── */
+    document.getElementById('surveyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.add('hidden');
+      errorBox.textContent = '';
+
+      const errs = validateForm();
+      if (errs.length) {
+        errorBox.innerHTML = errs.map(m => `<p>${m}</p>`).join('');
+        errorBox.classList.remove('hidden');
+        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      const saveBtn = document.getElementById('saveSurveyBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+
+      try {
+        const method   = document.querySelector('input[name="method"]:checked').value;
+        const siteId   = parseInt(siteEl.value, 10);
+        const timestamp = dateEl.value;
+        const notes    = document.getElementById('notes').value.trim();
+
+        // 1. Insert survey
+        const surveyId = insertSurvey({
+          site_id:     siteId,
+          surveyor_id: user ? user.id : null,
+          timestamp,
+          method,
+          notes,
+          sync_status: 'pending',
+        });
+
+        // 2. Insert fish biomass
+        const totalBiomass = parseFloat(totalEl.value) || 0;
+        insertFishBiomass({
+          survey_id:        surveyId,
+          species:          document.getElementById('fishSpecies').value.trim() || null,
+          count:            parseInt(countEl.value, 10) || 0,
+          avg_weight_kg:    parseFloat(weightEl.value) || 0,
+          total_biomass_kg: totalBiomass,
+          confidence:       parseInt(document.getElementById('biomassConfidence').value) / 100,
+          source:           document.getElementById('biomassSource').value,
+        });
+
+        // 3. Insert coral cover
+        const coralPct   = parseFloat(coralPctEl.value) || 0;
+        const bleachPct  = parseFloat(bleachEl.value)   || 0;
+        insertCoralCover({
+          survey_id:           surveyId,
+          cover_percent:       coralPct,
+          bleaching_percent:   bleachPct,
+          species_composition: document.getElementById('speciesComposition').value.trim() || null,
+          confidence:          parseInt(document.getElementById('coralConfidence').value) / 100,
+          source:              document.getElementById('coralSource').value,
+        });
+
+        // 4. Insert carbon sequestration
+        const carbonTons = parseFloat(carbonEl.value) || 0;
+        insertCarbonSeq({
+          survey_id:              surveyId,
+          estimated_tons_per_year: carbonTons,
+          methodology:            document.getElementById('carbonMethodology').value.trim() || null,
+          notes:                  document.getElementById('carbonNotes').value.trim()       || null,
+        });
+
+        // 5. Queue for background sync
+        await queueForSync('surveys', surveyId, 'insert', {
+          survey_id:    surveyId,
+          site_id:      siteId,
+          timestamp,
+          method,
+          notes,
+          total_biomass_kg:     totalBiomass,
+          coral_cover_percent:  coralPct,
+          bleaching_percent:    bleachPct,
+          carbon_tons_per_year: carbonTons,
+        });
+
+        // 6. Check for threshold alerts
+        await checkAndGenerateAlerts(surveyId);
+
+        // 7. Persist DB to IndexedDB
+        await persistDB();
+
+        showToast('Survey saved successfully ✓', 'success');
+        setTimeout(() => window.location.replace('dashboard.html'), 1500);
+      } catch (err) {
+        errorBox.textContent = `Save failed: ${err.message}`;
+        errorBox.classList.remove('hidden');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Survey';
+      }
+    });
+
+    /* ── Initialise ───────────────────────────────────────────── */
+    await initDB();
+    await populateSites();
+    initWatsonxChat({ currentUser });
+  </script>
+
+</body>
+</html>
